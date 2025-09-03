@@ -1,62 +1,48 @@
 package com.gildedrose;
 
+import java.util.HashMap;
+import java.util.Map;
+
 class GildedRose {
     Item[] items;
+
+    private static final Map<String, UpdateRule> rules;
+    private static final UpdateRule defaultRule;
+
+    /**
+     * O bloco de inicialização estático agora contém todas as regras de negócio
+     * específicas, incluindo a nova regra para "Conjured".
+     */
+    static {
+        rules = new HashMap<>();
+        rules.put("Aged Brie", new AgedBrieRule()); // Regra: "Aged Brie aumenta com o tempo"
+        rules.put("Backstage passes to a TAFKAL80ETC concert", new BackstagePassRule()); // Regra: A qualidade varia conforme a proximidade do show
+        rules.put("Conjured Mana Cake", new ConjuredItemRule()); // Regra: "Conjured degrada 2x"
+
+        defaultRule = new NormalItemRule();
+    }
 
     public GildedRose(Item[] items) {
         this.items = items;
     }
 
+    /**
+     * O método final. É simples, legível e, o mais importante,
+     * não precisará ser modificado quando novas regras de item forem adicionadas.
+     */
     public void updateQuality() {
-        for (int i = 0; i < items.length; i++) {
-            if (!items[i].name.equals("Aged Brie")
-                    && !items[i].name.equals("Backstage passes to a TAFKAL80ETC concert")) {
-                if (items[i].quality > 0) {
-                    if (!items[i].name.equals("Sulfuras, Hand of Ragnaros")) {
-                        items[i].quality = items[i].quality - 1;
-                    }
-                }
-            } else {
-                if (items[i].quality < 50) {
-                    items[i].quality = items[i].quality + 1;
-
-                    if (items[i].name.equals("Backstage passes to a TAFKAL80ETC concert")) {
-                        if (items[i].sellIn < 11) {
-                            if (items[i].quality < 50) {
-                                items[i].quality = items[i].quality + 1;
-                            }
-                        }
-
-                        if (items[i].sellIn < 6) {
-                            if (items[i].quality < 50) {
-                                items[i].quality = items[i].quality + 1;
-                            }
-                        }
-                    }
-                }
+        for (Item item : items) {
+            // "Sulfuras" é uma exceção que nunca muda, então o ignoramos.
+            if (item.name.equals("Sulfuras, Hand of Ragnaros")) {
+                continue; // Pula para a próxima iteração do loop
             }
 
-            if (!items[i].name.equals("Sulfuras, Hand of Ragnaros")) {
-                items[i].sellIn = items[i].sellIn - 1;
-            }
+            // Usamos o mapa para pegar a regra correta.
+            // Se o nome do item não estiver no mapa, ele usa a defaultRule.
+            UpdateRule rule = rules.getOrDefault(item.name, defaultRule);
 
-            if (items[i].sellIn < 0) {
-                if (!items[i].name.equals("Aged Brie")) {
-                    if (!items[i].name.equals("Backstage passes to a TAFKAL80ETC concert")) {
-                        if (items[i].quality > 0) {
-                            if (!items[i].name.equals("Sulfuras, Hand of Ragnaros")) {
-                                items[i].quality = items[i].quality - 1;
-                            }
-                        }
-                    } else {
-                        items[i].quality = items[i].quality - items[i].quality;
-                    }
-                } else {
-                    if (items[i].quality < 50) {
-                        items[i].quality = items[i].quality + 1;
-                    }
-                }
-            }
+            // Executamos a regra!
+            rule.update(item);
         }
     }
 }
